@@ -32,7 +32,21 @@
     </div>
   </header>
 
-  <section class="scan-workbench">
+  <section class="scan-workbench" [class.doc-collapsed]="!(admini
+  strativeSourceTypes?.length)">
+    <aside class="doc-panel">
+      <div class="doc-list">
+        <button
+          type="button"
+          class="doc-list-item"
+          *ngFor="let type of administrativeSourceTypes"
+          [class.active]="selectedDocument === type.englishValue"
+          (click)="chooseDocument(type.englishValue)">
+          {{ type.englishValue }}
+        </button>
+      </div>
+    </aside>
+
     <aside class="tool-panel">
       <div class="tool-group">
         <h4>reset</h4>
