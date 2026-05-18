@@ -1,0 +1,38 @@
+:host {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+}
+
+.launcher-container {
+	position: fixed;
+	inset: 0;
+	height: 100vh;
+	width: 100vw;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 1000;
+	background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.launcher-card {
+	text-align: center;
+	background: #fff;
+	padding: 28px;
+	border-radius: 12px;
+	box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+	max-width: 420px;
+}
+
+.launcher-btn {
+	margin-top: 12px;
+	padding: 12px 20px;
+	font-size: 16px;
+	border-radius: 8px;
+	background: linear-gradient(180deg,#007bff,#0069d9);
+	color: white;
+	border: none;
+}
+

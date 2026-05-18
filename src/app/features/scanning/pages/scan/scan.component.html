@@ -1,0 +1,209 @@
+<form class="scan-shell" (ngSubmit)="uploadDocument()">
+  <input #filePicker type="file" accept="image/*,application/pdf" class="hidden-file-input" (change)="onFileSelected($event)">
+
+  <header class="scan-topbar">
+    <div class="topbar-left">
+      <div class="topbar-title">Application Detail View</div>
+      <div class="topbar-scanner-select">
+        <label for="scannerSelect">Scanner:</label>
+        <select id="scannerSelect" name="scannerSelect" [(ngModel)]="selectedScanner" [disabled]="isScanning || isUploading">
+          <option *ngFor="let scanner of scanners" [value]="scanner">{{ scanner }}</option>
+        </select>
+      </div>
+      <label class="topbar-adf-toggle" for="useAdfCheckbox">
+        <input id="useAdfCheckbox" type="checkbox" name="useAdf" [(ngModel)]="useAdf" [disabled]="isScanning || isUploading">
+        <span>ADF</span>
+      </label>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" class="top-btn top-btn-reject" (click)="resetForm()">Reject</button>
+      <button type="button" class="top-btn top-btn-main" (click)="startScan()" [disabled]="isScanning || isUploading">
+        <span *ngIf="!isScanning && !hasCapturedImage">Scan</span>
+        <span *ngIf="!isScanning && hasCapturedImage">Add Page</span>
+        <span *ngIf="isScanning">Scanning...</span>
+      </button>
+      <button type="button" class="top-btn top-btn-main" (click)="confirmEdit()" [disabled]="!hasCapturedImage || !isEditingImage || isProcessingPdf">Confirm</button>
+      <button type="button" class="top-btn top-btn-save" (click)="uploadDocument()" [disabled]="!hasCapturedImage || isUploading || isProcessingPdf" aria-label="Save and upload">
+        <span class="top-save-icon" *ngIf="!isUploading && !isProcessingPdf"></span>
+        <span class="top-save-text" *ngIf="!isUploading && !isProcessingPdf">upload</span>
+        <span class="top-save-icon" *ngIf="isUploading || isProcessingPdf">⏳</span>
+        <span class="top-save-text" *ngIf="isUploading || isProcessingPdf">Saving...</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="scan-workbench">
+    <aside class="doc-panel">
+      <div class="doc-list">
+        <button
+          type="button"
+          class="doc-list-item"
+          *ngFor="let type of administrativeSourceTypes"
+          [class.active]="selectedDocument === type.englishValue"
+          (click)="chooseDocument(type.englishValue)">
+          {{ type.englishValue }}
+        </button>
+      </div>
+    </aside>
+
+    <aside class="tool-panel">
+      <div class="tool-group">
+        <h4>General</h4>
+        <div class="tool-row">
+          <button type="button" class="tool-btn" (click)="editorRotateLeft()" [disabled]="!hasCapturedImage" aria-label="Rotate left">
+            <span class="tool-icon">↺</span>
+          </button>
+          <button type="button" class="tool-btn" (click)="editorRotateRight()" [disabled]="!hasCapturedImage" aria-label="Rotate right">
+            <span class="tool-icon">↻</span>
+          </button>
+        </div>
+        <div class="tool-row">
+          <button type="button" class="tool-btn" (click)="editorZoomIn()" [disabled]="!hasCapturedImage" aria-label="Zoom in">
+            <span class="tool-icon">＋</span>
+          </button>
+          <button type="button" class="tool-btn" (click)="editorZoomOut()" [disabled]="!hasCapturedImage" aria-label="Zoom out">
+            <span class="tool-icon">－</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h4>Rotate</h4>
+        <div class="tool-row">
+          <button type="button" class="tool-btn" (click)="rotateCanvasLeft()" [disabled]="!hasCapturedImage" aria-label="Rotate canvas left">
+            <span class="tool-icon">⟲</span>
+          </button>
+          <button type="button" class="tool-btn" (click)="rotateCanvasRight()" [disabled]="!hasCapturedImage" aria-label="Rotate canvas right">
+            <span class="tool-icon">⟳</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h4>Mirror and Flip</h4>
+        <div class="tool-row">
+          <button type="button" class="tool-btn" (click)="toggleFlipHorizontal()" [disabled]="!hasCapturedImage" aria-label="Flip horizontal">
+            <span class="tool-icon">⇋</span>
+          </button>
+          <button type="button" class="tool-btn" (click)="toggleFlipVertical()" [disabled]="!hasCapturedImage" aria-label="Flip vertical">
+            <span class="tool-icon">⇕</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h4>Fit and Scale</h4>
+        <div class="tool-row">
+          <button type="button" class="tool-btn" (click)="resetFitAndScale()" [disabled]="!hasCapturedImage" aria-label="Reset fit">
+            <span class="tool-icon">⤢</span>
+          </button>
+          <button type="button" class="tool-btn" (click)="resetScaleToOne()" [disabled]="!hasCapturedImage" aria-label="Reset scale">
+            <span class="tool-icon">1:1</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h4>Cut and Crop</h4>
+        <div class="tool-row">
+          <button type="button" class="tool-btn" (click)="isEditingImage = true" [disabled]="!hasCapturedImage || uploadedFile?.type === 'application/pdf'" aria-label="Open editor">
+            <span class="tool-icon">✂</span>
+          </button>
+          <button type="button" class="tool-btn" (click)="confirmEdit()" [disabled]="!hasCapturedImage || !isEditingImage || isProcessingPdf" aria-label="Apply crop">
+            <span class="tool-icon">✓</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="tool-group">
+        <h4>Delete and Clear</h4>
+        <div class="tool-row">
+          <button type="button" class="tool-btn tool-btn-danger" (click)="deleteCurrentPage()" [disabled]="!hasCapturedImage" aria-label="Delete current page">
+            <span class="tool-icon">⌫</span>
+          </button>
+          <button type="button" class="tool-btn tool-btn-danger" (click)="cleanAllPages()" [disabled]="!hasCapturedImage" aria-label="Clean all pages">
+            <span class="tool-icon">🗑</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <section class="preview-stage">
+      <div class="stage-frame" *ngIf="!isScanning && !hasCapturedImage">
+        <div class="stage-empty">
+          <h3>No document attached</h3>
+          <p>Select a document type, then click Scan or Load.</p>
+        </div>
+      </div>
+
+      <div class="stage-frame" [class.hidden]="!isScanning">
+        <div id="dwtcontrolContainer" class="dwt-frame"></div>
+        <div class="stage-inline-actions">
+          <button type="button" class="inline-action" (click)="stopScan()">Cancel Scan</button>
+          <button type="button" class="inline-action" (click)="appendScan()" [disabled]="isUploading">Scan and Add Page</button>
+        </div>
+      </div>
+
+      <div class="stage-frame" *ngIf="hasCapturedImage && isEditingImage">
+
+        <div style="margin: 10px 0;">
+            <label for="brightnessSlider">
+              Brightness (Gamma): {{gammaValue.toFixed(1)}}
+            </label><br />
+
+            <input
+              id="brightnessSlider"
+              name="brightnessSlider"
+              type="range"
+              min="0.1"
+              max="2"
+              step="0.1"
+              [(ngModel)]="gammaValue"
+              (input)="onGammaInput()"
+              (change)="applyBrightness()"
+              style="width: 75%;">
+        </div>
+
+        <div class="cropper-container">
+          <image-cropper
+            [imageBase64]="editorImageBase64 || ''"
+            [maintainAspectRatio]="false"
+            [containWithinAspectRatio]="false"
+            [transform]="transform"
+            [canvasRotation]="canvasRotation"
+            [alignImage]="'center'"
+            (imageCropped)="imageCropped($event)"></image-cropper>
+        </div>
+      </div>
+
+      <div class="stage-frame" [class.single-page]="(pagePreviewSources.length <= 1) && hasCapturedImage" *ngIf="hasCapturedImage && !isEditingImage">
+        <div *ngIf="uploadedFile?.type === 'application/pdf'" class="preview-file-card">
+          <strong>{{ uploadedFile?.name }}</strong>
+          <p *ngIf="scannedImageCount > 1">{{ scannedImageCount }} pages ready in PDF format</p>
+          <p *ngIf="scannedImageCount <= 1">PDF is ready to save</p>
+        </div>
+
+        <div *ngIf="uploadedFile?.type !== 'application/pdf' && currentPreviewSource" class="preview-image-shell">
+          <img [src]="currentPreviewSource" alt="Scanned document preview" class="preview-image">
+        </div>
+
+      </div>
+
+      <footer class="stage-footer">
+        <button type="button" class="footer-nav" (click)="showPreviousPreviewPage()" [disabled]="previewPageIndex === 0">|&lt;</button>
+        <button type="button" class="footer-nav" (click)="showPreviousPreviewPage()" [disabled]="previewPageIndex === 0">&lt;</button>
+        <div class="footer-counter">
+          {{ hasCapturedImage ? (previewPageIndex + 1) : 0 }}
+          /
+          {{ pagePreviewSources.length > 0 ? pagePreviewSources.length : (hasCapturedImage ? 1 : 0) }}
+        </div>
+        <button type="button" class="footer-nav" (click)="showNextPreviewPage()" [disabled]="previewPageIndex >= pagePreviewSources.length - 1">&gt;</button>
+        <button type="button" class="footer-nav" (click)="previewPageIndex = (pagePreviewSources.length > 0 ? pagePreviewSources.length - 1 : previewPageIndex)" [disabled]="pagePreviewSources.length <= 1">&gt;|</button>
+      </footer>
+
+      <div class="status-message" *ngIf="statusMessage" [class.success]="statusMessage.includes('Success')" [class.error]="statusMessage.includes('failed') || statusMessage.includes('error')">
+        {{ statusMessage }}
+      </div>
+    </section>
+  </section>
+</form>

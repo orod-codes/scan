@@ -1,0 +1,12 @@
+<div class="modal-backdrop" (click)="close()">
+  <div class="modal-panel" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+    <div class="modal-header">
+      <h3>{{ title }}</h3>
+      <button class="modal-close-icon" (click)="close()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div [innerHTML]="content"></div>
+      <ng-content></ng-content>
+    </div>
+  </div>
+</div>
