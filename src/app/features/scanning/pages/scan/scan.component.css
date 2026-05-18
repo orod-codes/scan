@@ -133,14 +133,10 @@
 
 .scan-workbench {
   display: grid;
-  grid-template-columns: 88px 160px 180px minmax(0, 1fr);
+  grid-template-columns: 88px 180px minmax(0, 1fr);
   min-height: calc(100vh - 52px);
   overflow-x: hidden;
   gap: 0;
-}
-
-.scan-workbench.doc-collapsed {
-  grid-template-columns: 88px 0 180px minmax(0, 1fr);
 }
 
 .doc-panel {
@@ -156,7 +152,8 @@
 
 
 .page-panel {
-  grid-column: 3;
+.page-panel {
+  grid-column: 2;
   background: #fbfcfe;
   border-right: none;
   padding: 2px 2px;
@@ -249,40 +246,6 @@
   font-size: 13px;
   padding: 10px 4px;
 }
-.doc-list {
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  min-height: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.doc-list-item {
-  width: 100%;
-  min-height: 32px;
-  text-align: left;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: #fff;
-  color: #36506f;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 0 8px;
-}
-
-.doc-list-item:hover {
-  background: #ecf6fe;
-}
-
-.doc-list-item.active {
-  background: #dbf0ff;
-  border-color: #9fd0f4;
-  font-weight: 700;
-}
-
 .device-config {
   border: 1px solid #e1e7ef;
   border-radius: 6px;
@@ -389,7 +352,7 @@
 }
 
 .preview-stage {
-  grid-column: 4;
+  grid-column: 3;
   display: flex;
   flex-direction: column;
   padding: 2px;
@@ -615,7 +578,7 @@
 @media (max-width: 1120px) {
   /* reduce side panel widths but keep a horizontal layout */
   .scan-workbench {
-    grid-template-columns: 72px 140px 160px minmax(0, 1fr);
+    grid-template-columns: 72px 160px minmax(0, 1fr);
   }
 }
 
@@ -637,13 +600,12 @@
 
   .top-btn { width: 100%; }
 
-  .scan-workbench { grid-template-columns: 64px 120px 140px minmax(0, 1fr); }
+  .scan-workbench { grid-template-columns: 64px 140px minmax(0, 1fr); }
 
   /* keep panels borderless and inline */
   .tool-panel { border-right: none; }
-  .doc-panel { grid-column: 2; }
   .page-panel { grid-column: 3; }
-  .preview-stage { grid-column: 4; }
+  .preview-stage { grid-column: 3; }
 
   .tool-group { width: 100%; }
   .tool-btn { min-height: 48px; }
