@@ -59,6 +59,8 @@ export class ScanComponent implements OnInit, OnDestroy {
   isProcessingPdf: boolean = false;
   previewPageIndex: number = 0;
   pagePreviewSources: string[] = [];
+  pageImageSources: string[] = [];
+  private pendingCapturePageIndex: number | null = null;
 
   statusMessage: string = '';
   isUploading: boolean = false;
@@ -213,6 +215,7 @@ export class ScanComponent implements OnInit, OnDestroy {
     this.scannedImageCount = 0;
     this.currentEditingIndex = 0;
     this.editedBase64Images = [];
+    this.pageImageSources = [];
     this.previewPageIndex = 0;
     for (const source of this.pagePreviewSources) {
       if (source.startsWith('blob:')) {
@@ -239,6 +242,7 @@ export class ScanComponent implements OnInit, OnDestroy {
     this.isScanning = true;
     this.hasScannedImage = false;
     this.hasCapturedImage = false;
+    this.pendingCapturePageIndex = this.pagePreviewSources.length;
     // We intentionally keep editedBase64Images so we can append to the document
     this.statusMessage = 'Initializing scanner to add page...';
     
@@ -391,22 +395,25 @@ export class ScanComponent implements OnInit, OnDestroy {
 
   captureImage(index: number = 0) {
     if (this.DWTObject && this.DWTObject.HowManyImagesInBuffer > index) {
-      this.currentEditingIndex = index;
+      const pageIndex = this.pendingCapturePageIndex ?? index;
+      this.pendingCapturePageIndex = null;
+      this.currentEditingIndex = pageIndex;
       this.originalBlob = null;
       this.DWTObject.ConvertToBlob(
         [index],
         Dynamsoft.DWT.EnumDWT_ImageType.IT_PNG,
         (result: Blob) => {
-          const fileName = `Scan_Page_${index + 1}.png`;
+          const fileName = `Scan_Page_${pageIndex + 1}.png`;
           this.uploadedFile = new File([result], fileName, { type: 'image/png' });
           this.originalBlob = result;
           this.blobToDataUrl(result).then((dataUrl) => {
             this.editorImageBase64 = dataUrl;
             this.capturedImageSrc = dataUrl;
+            this.pageImageSources[pageIndex] = dataUrl;
           });
           this.hasCapturedImage = true;
           this.isEditingImage = true; // Enter edit mode immediately
-          this.statusMessage = `Editing Page ${this.currentEditingIndex + 1} of ${this.scannedImageCount}.`;
+          this.statusMessage = `Editing Page ${this.currentEditingIndex + 1} of ${this.scannedImageCount || (this.currentEditingIndex + 1)}.`;
           
           if (index === 0) {
              this.isScanning = false;
@@ -468,6 +475,7 @@ export class ScanComponent implements OnInit, OnDestroy {
          this.isEditingImage = false;
          this.editorImageBase64 = null;
          this.capturedImageSrc = null;
+        this.pageImageSources = [];
          this.statusMessage = 'PDF selected. Ready to upload.';
       } else {
          const reader = new FileReader();
@@ -477,6 +485,7 @@ export class ScanComponent implements OnInit, OnDestroy {
           this.capturedImageSrc = dataUrl;
           this.originalBlob = file;
           this.pagePreviewSources = [dataUrl];
+         this.pageImageSources = [dataUrl];
           this.previewPageIndex = 0;
         };
          reader.readAsDataURL(file);
@@ -554,6 +563,32 @@ export class ScanComponent implements OnInit, OnDestroy {
     };
   }
 
+  resetCurrentEdit(): void {
+    const sourceBlob = this.originalBlob || this.uploadedFile;
+    if (!sourceBlob) {
+      this.statusMessage = 'No original image available to reset.';
+      return;
+    }
+
+    this.canvasRotation = 0;
+    this.transform = {};
+    this.gammaValue = 1.0;
+    this.croppedImageBlob = sourceBlob;
+
+    this.blobToDataUrl(sourceBlob)
+      .then((dataUrl) => {
+        this.editorImageBase64 = dataUrl;
+        this.capturedImageSrc = dataUrl;
+        this.croppedImageSrc = dataUrl;
+        this.isEditingImage = true;
+        this.statusMessage = 'Current edit reset to original image.';
+      })
+      .catch((error) => {
+        console.error('Failed to reset current edit:', error);
+        this.statusMessage = 'Failed to reset the current edit.';
+      });
+  }
+
   async confirmEdit() {
     if (!this.croppedImageBlob) {
       this.statusMessage = 'No cropped image available to confirm.';
@@ -562,33 +597,40 @@ export class ScanComponent implements OnInit, OnDestroy {
     this.statusMessage = 'Applying enhancements...';
     try {
       const finalBlob = this.croppedImageBlob;
-      
-      // Store edited page
+
       const base64Str = await this.blobToBase64(finalBlob);
-      this.editedBase64Images.push(base64Str);
-      this.pagePreviewSources.push(URL.createObjectURL(finalBlob));
-      this.previewPageIndex = this.pagePreviewSources.length - 1;
-      
-      if (this.currentEditingIndex + 1 < this.scannedImageCount) {
-         // Reset tools and move to next page
-         this.canvasRotation = 0;
-         this.transform = {};
-         this.gammaValue = 1.0;
-         this.captureImage(this.currentEditingIndex + 1);
+      const previewUrl = URL.createObjectURL(finalBlob);
+      const previousPreviewUrl = this.pagePreviewSources[this.currentEditingIndex];
+
+      if (previousPreviewUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(previousPreviewUrl);
+      }
+
+      this.editedBase64Images[this.currentEditingIndex] = base64Str;
+      this.pagePreviewSources[this.currentEditingIndex] = previewUrl;
+      this.pageImageSources[this.currentEditingIndex] = await this.blobToDataUrl(finalBlob);
+      this.previewPageIndex = this.currentEditingIndex;
+      this.capturedImageSrc = previewUrl;
+
+      const fileName = this.uploadedFile?.name || `Processed_${new Date().getTime()}.png`;
+      this.uploadedFile = new File([finalBlob], fileName, { type: finalBlob.type || 'image/png' });
+
+      this.canvasRotation = 0;
+      this.transform = {};
+      this.gammaValue = 1.0;
+      this.editorImageBase64 = await this.blobToDataUrl(finalBlob);
+      this.croppedImageSrc = previewUrl;
+      this.hasCapturedImage = true;
+      this.croppedImageBlob = null;
+
+      const nextEditingIndex = this.currentEditingIndex + 1;
+      if (nextEditingIndex < this.scannedImageCount) {
+        this.isEditingImage = true;
+        this.statusMessage = `Page ${this.currentEditingIndex + 1} saved. Editing page ${nextEditingIndex + 1}.`;
+        this.captureImage(nextEditingIndex);
       } else {
-        // All pages in THIS batch edited!
-        if (this.editedBase64Images.length > 1) {
-          this.previewPageIndex = 0;
-          this.isEditingImage = false;
-          this.statusMessage = 'All pages collected. Use Previous/Next to review before uploading.';
-        } else {
-          // Single page upload flow
-          const fileName = this.uploadedFile?.name || `Processed_${new Date().getTime()}.png`;
-          this.uploadedFile = new File([finalBlob], fileName, { type: finalBlob.type || 'image/png' });
-          this.capturedImageSrc = URL.createObjectURL(finalBlob);
-          this.isEditingImage = false;
-          this.statusMessage = 'Document confirmed. Ready to upload.';
-        }
+        this.isEditingImage = true;
+        this.statusMessage = `Page ${this.currentEditingIndex + 1} saved. No more pages to edit.`;
       }
     } catch (e: any) {
       this.statusMessage = 'Failed to apply enhancements: ' + (e?.message || 'Unknown error');
@@ -909,18 +951,41 @@ applyBrightness(): void {
 
   showPreviousPreviewPage(): void {
     if (this.previewPageIndex > 0) {
-      this.previewPageIndex--;
+      this.loadPageForNavigation(this.previewPageIndex - 1);
     }
   }
 
   showNextPreviewPage(): void {
     if (this.previewPageIndex < this.pagePreviewSources.length - 1) {
-      this.previewPageIndex++;
+      this.loadPageForNavigation(this.previewPageIndex + 1);
     }
   }
 
   get currentPreviewSource(): string | null {
-    return this.pagePreviewSources[this.previewPageIndex] || this.capturedImageSrc;
+    return this.pageImageSources[this.previewPageIndex] || this.pagePreviewSources[this.previewPageIndex] || this.capturedImageSrc;
+  }
+
+  selectPreviewPage(index: number): void {
+    this.loadPageForNavigation(index);
+  }
+
+  private loadPageForNavigation(index: number): void {
+    if (index < 0 || index >= this.pagePreviewSources.length) {
+      return;
+    }
+
+    this.previewPageIndex = index;
+    this.currentEditingIndex = index;
+
+    const pageSource = this.pageImageSources[index] || null;
+    if (pageSource) {
+      this.editorImageBase64 = pageSource;
+      this.capturedImageSrc = pageSource;
+      this.croppedImageSrc = pageSource;
+      this.hasCapturedImage = true;
+      this.isEditingImage = true;
+      this.statusMessage = `Page ${index + 1} of ${this.pagePreviewSources.length} loaded.`;
+    }
   }
 
   async uploadDocument(): Promise<void> {

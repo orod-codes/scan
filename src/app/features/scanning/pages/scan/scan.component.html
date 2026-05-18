@@ -48,14 +48,18 @@
 
     <aside class="tool-panel">
       <div class="tool-group">
-        <h4>General</h4>
+        <h4>reset</h4>
         <div class="tool-row">
-          <button type="button" class="tool-btn" (click)="editorRotateLeft()" [disabled]="!hasCapturedImage" aria-label="Rotate left">
+          <button type="button" class="tool-btn tool-btn-danger tool-btn-wide" (click)="resetCurrentEdit()" [disabled]="!hasCapturedImage" aria-label="Reset current edit">
             <span class="tool-icon">↺</span>
           </button>
-          <button type="button" class="tool-btn" (click)="editorRotateRight()" [disabled]="!hasCapturedImage" aria-label="Rotate right">
-            <span class="tool-icon">↻</span>
-          </button>
+        </div>
+      </div>
+      <div class="tool-group">
+        <h4>zoom</h4>
+        <div class="tool-row">
+      
+        
         </div>
         <div class="tool-row">
           <button type="button" class="tool-btn" (click)="editorZoomIn()" [disabled]="!hasCapturedImage" aria-label="Zoom in">
@@ -126,6 +130,27 @@
           </button>
         </div>
       </div>
+    </aside>
+
+    <aside class="page-panel">
+      <div class="page-panel-header">Pages</div>
+      <div class="page-list" *ngIf="pagePreviewSources.length > 0; else noPagesState">
+        <button
+          type="button"
+          class="page-list-item"
+          *ngFor="let page of pagePreviewSources; let index = index"
+          [class.active]="previewPageIndex === index"
+          (click)="selectPreviewPage(index)">
+          <img class="page-thumb" [src]="pageImageSources[index] || page" [alt]="'Page ' + (index + 1)" />
+          <div class="page-meta">
+            <span class="page-label">Page {{ index + 1 }}</span>
+            <span class="page-state" *ngIf="previewPageIndex === index">Active</span>
+          </div>
+        </button>
+      </div>
+      <ng-template #noPagesState>
+        <div class="page-panel-empty">No pages yet</div>
+      </ng-template>
     </aside>
 
     <section class="preview-stage">
