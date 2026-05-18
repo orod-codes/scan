@@ -16,7 +16,7 @@
       </label>
     </div>
     <div class="topbar-actions">
-      <button type="button" class="top-btn top-btn-reject" (click)="resetForm()">Reject</button>
+      <button type="button" class="top-btn top-btn-reject" (click)="rejectScans()">Reject</button>
       <button type="button" class="top-btn top-btn-main" (click)="startScan()" [disabled]="isScanning || isUploading">
         <span *ngIf="!isScanning && !hasCapturedImage">Scan</span>
         <span *ngIf="!isScanning && hasCapturedImage">Add Page</span>
@@ -32,7 +32,7 @@
     </div>
   </header>
 
-  <section class="scan-workbench">
+  <section class="scan-workbench" [class.doc-collapsed]="!(administrativeSourceTypes?.length)">
     <aside class="doc-panel">
       <div class="doc-list">
         <button
@@ -164,8 +164,7 @@
       <div class="stage-frame" [class.hidden]="!isScanning">
         <div id="dwtcontrolContainer" class="dwt-frame"></div>
         <div class="stage-inline-actions">
-          <button type="button" class="inline-action" (click)="stopScan()">Cancel Scan</button>
-          <button type="button" class="inline-action" (click)="appendScan()" [disabled]="isUploading">Scan and Add Page</button>
+          
         </div>
       </div>
 

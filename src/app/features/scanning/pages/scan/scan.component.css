@@ -133,13 +133,14 @@
 
 .scan-workbench {
   display: grid;
-  grid-template-columns: 112px 240px 160px minmax(0, 1fr);
+  grid-template-columns: 88px 160px 180px minmax(0, 1fr);
   min-height: calc(100vh - 52px);
-  min-width: 960px;
-  overflow-x: auto;
-  column-gap: 0;
-  row-gap: 0;
+  overflow-x: hidden;
   gap: 0;
+}
+
+.scan-workbench.doc-collapsed {
+  grid-template-columns: 88px 0 180px minmax(0, 1fr);
 }
 
 .doc-panel {
@@ -612,28 +613,14 @@
 }
 
 @media (max-width: 1120px) {
+  /* reduce side panel widths but keep a horizontal layout */
   .scan-workbench {
-    grid-template-columns: 96px 180px 148px minmax(520px, 1fr);
-  }
-
-  .tool-panel {
-    grid-column: 1;
-  }
-
-  .page-panel {
-    grid-column: 3;
-  }
-
-  .tool-group {
-    width: calc(33.333% - 8px);
-  }
-
-  .preview-stage {
-    grid-column: 4;
+    grid-template-columns: 72px 140px 160px minmax(0, 1fr);
   }
 }
 
 @media (max-width: 760px) {
+  /* compact the side columns but preserve horizontal layout on small devices */
   .scan-topbar {
     height: auto;
     gap: 8px;
@@ -648,46 +635,16 @@
     grid-template-columns: 1fr 1fr;
   }
 
-  .top-btn {
-    width: 100%;
-  }
+  .top-btn { width: 100%; }
 
-  .scan-workbench {
-    grid-template-columns: 88px 128px 132px minmax(420px, 1fr);
-    grid-template-rows: none;
-  }
+  .scan-workbench { grid-template-columns: 64px 120px 140px minmax(0, 1fr); }
 
-  .tool-panel {
-    grid-column: 1;
-    border-right: 1px solid var(--line);
-    border-top: 0;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-content: normal;
-  }
+  /* keep panels borderless and inline */
+  .tool-panel { border-right: none; }
+  .doc-panel { grid-column: 2; }
+  .page-panel { grid-column: 3; }
+  .preview-stage { grid-column: 4; }
 
-  .doc-panel {
-    grid-column: 1;
-  }
-
-  .page-panel {
-    grid-column: 2;
-  }
-
-  .preview-stage {
-    grid-column: 4;
-  }
-
-  .tool-group {
-    width: 100%;
-  }
-
-  .tool-btn {
-    min-height: 48px;
-  }
-
-  .stage-inline-actions {
-    flex-wrap: wrap;
-    justify-content: flex-start;
-  }
+  .tool-group { width: 100%; }
+  .tool-btn { min-height: 48px; }
 }

@@ -686,6 +686,44 @@ export class ScanComponent implements OnInit, OnDestroy {
     }
   }
 
+  rejectScans(): void {
+    if (!this.hasCapturedImage && this.pagePreviewSources.length === 0) {
+      this.statusMessage = 'No scanned pages to reject.';
+      return;
+    }
+
+    if (!confirm('Reject scanned pages? This will remove all scanned pages but keep your selected document and settings.')) {
+      return;
+    }
+
+    // Revoke any blob preview URLs
+    for (const source of this.pagePreviewSources) {
+      if (source && source.startsWith('blob:')) {
+        try { URL.revokeObjectURL(source); } catch (e) { }
+      }
+    }
+
+    // Clear only the scanned/image state — keep form selections
+    this.pagePreviewSources = [];
+    this.pageImageSources = [];
+    this.editedBase64Images = [];
+    this.previewPageIndex = 0;
+    this.currentEditingIndex = 0;
+    this.scannedImageCount = 0;
+    this.hasCapturedImage = false;
+    this.isEditingImage = false;
+    this.capturedImageSrc = null;
+    this.editorImageBase64 = null;
+    this.croppedImageBlob = null;
+    this.croppedImageSrc = null;
+
+    if (this.DWTObject) {
+      try { this.DWTObject.RemoveAllImages(); } catch (e) { }
+    }
+
+    this.statusMessage = 'Scanned pages rejected.';
+  }
+
   deleteCurrentPage(): void {
     if (!this.hasCapturedImage) {
       return;
